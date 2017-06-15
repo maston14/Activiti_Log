@@ -15,6 +15,7 @@ END_TIME_	datetime	Yes
 DURATION_	bigint(20)	Yes
 TENANT_ID_	varchar(255)	Yes
 
+
 act_hi_detail
 
 ID_	varchar(64)	No
