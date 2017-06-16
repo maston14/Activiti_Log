@@ -14,7 +14,10 @@ try:
     var_map = {}
     for row in results:
         if row["ACT_INST_ID_"] != None:
-            var_map[(row["PROC_INST_ID_"], row["ACT_INST_ID_"])] = (row["NAME_"],row[type_map[row["VAR_TYPE_"]]])
+            if (row["PROC_INST_ID_"], row["ACT_INST_ID_"]) not in var_map:
+                var_map[(row["PROC_INST_ID_"], row["ACT_INST_ID_"])] = []
+            # use a list because a act_inst can have multiple variables
+            var_map[(row["PROC_INST_ID_"], row["ACT_INST_ID_"])].append((row["NAME_"],row[type_map[row["VAR_TYPE_"]]]))
 except:
     print("Error: unable to fetch data")
 
@@ -26,7 +29,11 @@ try:
     cursor.execute(sql)
     results = cursor.fetchall()
     n = 1
+    # for inner order
     inst_map = {}
+    # for global var
+    inst_var_map = {}
+
     with open('/Users/YIZHONGQI/Desktop/log_convert.txt', 'a') as w:
         for row in results:
             proc_inst_id = row["PROC_INST_ID_"]
@@ -38,18 +45,31 @@ try:
                 inner_order = inst_map[proc_inst_id]
                 inst_map[proc_inst_id] += 1
 
-            towrite = str(n) + '\t' + proc_inst_id + '\t' + str(inner_order) + '\t' + row["ACT_ID_"]
-            print(towrite)
+            common_to_write = str(n) + '|' + proc_inst_id + '|' + str(inner_order) + '|' + row["ACT_ID_"] + '|'
+            print(common_to_write)
+            start_towrite = common_to_write + "in:"
+            end_towrite = common_to_write + 'out:'
+
+            # get the variable that already exists
+            if proc_inst_id not in inst_var_map:
+                inst_var_map[proc_inst_id] = {}
+            for k, v in inst_var_map[proc_inst_id].items():
+                start_towrite += k + '=' + str(v) + ','
+
+            # update new variable
             if (proc_inst_id, row['ID_']) in var_map:
-                var = var_map[(proc_inst_id, row['ID_'])]
-                towrite += '\t' + var[0] + "=" + str(var[1])
+                var_list = var_map[(proc_inst_id, row['ID_'])]
 
-            towrite += '||||'
+                for var in var_list:
+                    inst_var_map[proc_inst_id][var[0]] = var[1]
+                    end_towrite += var[0] + "=" + str(var[1]) + ','
 
-            for item in row.items():
-                towrite += str(item) + ","
-            towrite += '\n'
-            w.write(towrite)
+
+            start_towrite += '\n'
+            end_towrite += '\n'
+
+            w.write(start_towrite)
+            w.write(end_towrite)
 
 except Exception as e:
     print("Error: unable to fetch data", e)
